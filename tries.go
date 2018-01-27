@@ -10,13 +10,14 @@ the last time Reset() was called
 Note: Implementation is not thread-safe.
 */
 func WithMaxRetries(b BackOff, max uint64) BackOff {
-	return &backOffTries{delegate: b, maxTries: max}
+	return &backOffTries{delegate: b, maxTries: max, Canceled: make(chan struct{})}
 }
 
 type backOffTries struct {
 	delegate BackOff
 	maxTries uint64
 	numTries uint64
+	Canceled chan struct{}
 }
 
 func (b *backOffTries) NextBackOff() time.Duration {
@@ -32,4 +33,8 @@ func (b *backOffTries) NextBackOff() time.Duration {
 func (b *backOffTries) Reset() {
 	b.numTries = 0
 	b.delegate.Reset()
+}
+
+func (b *backOffTries) Cancel() chan struct{} {
+	return b.Canceled
 }

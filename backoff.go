@@ -30,6 +30,9 @@ type BackOff interface {
 
 	// Reset to initial state.
 	Reset()
+
+	// Cancel returns the channel used to cancel a backoff timer
+	Cancel() chan struct{}
 }
 
 // Stop indicates that no more retries should be made for use in NextBackOff().

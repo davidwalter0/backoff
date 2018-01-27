@@ -56,6 +56,7 @@ type ExponentialBackOff struct {
 	RandomizationFactor float64
 	Multiplier          float64
 	MaxInterval         time.Duration
+	Canceled            chan struct{}
 	// After MaxElapsedTime the ExponentialBackOff stops.
 	// It never stops if MaxElapsedTime == 0.
 	MaxElapsedTime time.Duration
@@ -81,7 +82,7 @@ const (
 )
 
 // NewExponentialBackOff creates an instance of ExponentialBackOff using default values.
-func NewExponentialBackOff() *ExponentialBackOff {
+func NewExponentialBackOff(canceled chan struct{}) *ExponentialBackOff {
 	b := &ExponentialBackOff{
 		InitialInterval:     DefaultInitialInterval,
 		RandomizationFactor: DefaultRandomizationFactor,
@@ -89,6 +90,7 @@ func NewExponentialBackOff() *ExponentialBackOff {
 		MaxInterval:         DefaultMaxInterval,
 		MaxElapsedTime:      DefaultMaxElapsedTime,
 		Clock:               SystemClock,
+		Canceled:            canceled,
 		random:              rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	b.Reset()
@@ -134,6 +136,13 @@ func (b *ExponentialBackOff) GetElapsedTime() time.Duration {
 	return b.Clock.Now().Sub(b.startTime)
 }
 
+// StartTime returns the clock time when an ExponentialBackOff instance
+// is created and is reset when Reset() is called.
+//
+func (b *ExponentialBackOff) StartTime() time.Time {
+	return b.startTime
+}
+
 // Increments the current interval by multiplying it with the multiplier.
 func (b *ExponentialBackOff) incrementCurrentInterval() {
 	// Check for overflow, if overflow is detected set the current interval to the max interval.
@@ -155,4 +164,9 @@ func getRandomValueFromInterval(randomizationFactor, random float64, currentInte
 	// The formula used below has a +1 because if the minInterval is 1 and the maxInterval is 3 then
 	// we want a 33% chance for selecting either 1, 2 or 3.
 	return time.Duration(minInterval + (random * (maxInterval - minInterval + 1)))
+}
+
+// Cancel channel
+func (b *ExponentialBackOff) Cancel() chan struct{} {
+	return b.Canceled
 }

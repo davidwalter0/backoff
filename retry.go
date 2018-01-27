@@ -57,6 +57,7 @@ func RetryNotify(operation Operation, b BackOff, notify Notify) error {
 			t.Stop()
 			return err
 		case <-t.C:
+		case <-b.Cancel():
 		}
 	}
 }
